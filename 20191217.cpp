@@ -18,7 +18,8 @@
 #define KEY_DOWN(vk_code) ((GetAsyncKeyState(vk_code) & 0x8000) ? 1 : 0)
 #define KEY_UP(vk_code) ((GetAsyncKeyState(vk_code) & 0x8000) ? 0 : 1)
 
-#define ENEMY_NUM 10 
+#define ENEMY_NUM 6 
+#define BULLET_NUM 10
 
 
 // include the Direct3D Library file
@@ -37,6 +38,7 @@ LPDIRECT3DTEXTURE9 sprite;    // the pointer to the sprite
 LPDIRECT3DTEXTURE9 sprite_hero;    // the pointer to the sprite
 LPDIRECT3DTEXTURE9 sprite_enemy;    // the pointer to the sprite
 LPDIRECT3DTEXTURE9 sprite_bullet;    // the pointer to the sprite
+LPDIRECT3DTEXTURE9 sprite_back;    // the pointer to the sprite
 
 
 
@@ -140,7 +142,7 @@ void Enemy::init(float x, float y)
 
 void Enemy::move()
 {
-	y_pos += 2;
+	x_pos -= 1;
 
 }
 
@@ -189,7 +191,7 @@ void Bullet::active()
 
 void Bullet::move()
 {
-	y_pos -= 8;
+	x_pos += 8;
 }
 
 void Bullet::hide()
@@ -206,7 +208,7 @@ void Bullet::hide()
 //객체 생성 
 Hero hero;
 Enemy enemy[ENEMY_NUM];
-Bullet bullet;
+Bullet bullet[BULLET_NUM];
 
 
 
@@ -270,8 +272,6 @@ int WINAPI WinMain(HINSTANCE hInstance,
 			PostMessage(hWnd, WM_DESTROY, 0, 0);
 
 
-
-
 		while ((GetTickCount() - starting_point) < 25);
 	}
 
@@ -325,6 +325,21 @@ void initD3D(HWND hWnd)
 	D3DXCreateSprite(d3ddev, &d3dspt);    // create the Direct3D Sprite object
 
 	D3DXCreateTextureFromFileEx(d3ddev,    // the device pointer
+		L"background.png",    // the file name
+		D3DX_DEFAULT,    // default width
+		D3DX_DEFAULT,    // default height
+		D3DX_DEFAULT,    // no mip mapping
+		NULL,    // regular usage
+		D3DFMT_A8R8G8B8,    // 32-bit pixels with alpha
+		D3DPOOL_MANAGED,    // typical memory handling
+		D3DX_DEFAULT,    // no filtering
+		D3DX_DEFAULT,    // no mip filtering
+		D3DCOLOR_XRGB(255, 0, 255),    // the hot-pink color key
+		NULL,    // no image info struct
+		NULL,    // not using 256 colors
+		&sprite_back);    // load to sprite
+
+	D3DXCreateTextureFromFileEx(d3ddev,    // the device pointer
 		L"Panel3.png",    // the file name
 		D3DX_DEFAULT,    // default width
 		D3DX_DEFAULT,    // default height
@@ -341,7 +356,7 @@ void initD3D(HWND hWnd)
 
 
 	D3DXCreateTextureFromFileEx(d3ddev,    // the device pointer
-		L"hero.png",    // the file name
+		L"santa girl_.png",    // the file name
 		D3DX_DEFAULT,    // default width
 		D3DX_DEFAULT,    // default height
 		D3DX_DEFAULT,    // no mip mapping
@@ -372,7 +387,7 @@ void initD3D(HWND hWnd)
 
 
 	D3DXCreateTextureFromFileEx(d3ddev,    // the device pointer
-		L"bullet.png",    // the file name
+		L"ball.png",    // the file name
 		D3DX_DEFAULT,    // default width
 		D3DX_DEFAULT,    // default height
 		D3DX_DEFAULT,    // no mip mapping
@@ -388,26 +403,27 @@ void initD3D(HWND hWnd)
 
 
 
-
-
 	return;
 }
 
 
 void init_game(void)
 {
-	//객체 초기화 
+	//객체 초기화 (처음위치)
 	hero.init(150, 300);
 
 	//적들 초기화 
 	for (int i = 0; i < ENEMY_NUM; i++)
 	{
 
-		enemy[i].init((float)(rand() % 300), rand() % 200 - 300);
+		enemy[i].init((float)(rand() % 500+500), rand() % 250+50);
 	}
 
 	//총알 초기화 
-	bullet.init(hero.x_pos, hero.y_pos);
+	for (int i = 0; i < BULLET_NUM; i++)
+	{
+		bullet[i].init(hero.x_pos + 50, hero.y_pos);
+	}
 
 }
 
@@ -432,37 +448,39 @@ void do_game_logic(void)
 	//적들 처리 
 	for (int i = 0; i < ENEMY_NUM; i++)
 	{
-		if (enemy[i].y_pos > 500)
-			enemy[i].init((float)(rand() % 300), rand() % 200 - 300);
+		if (enemy[i].x_pos < 50)
+			enemy[i].init((float)(rand() % 300+300), rand() % 200 - 300); //지정위치에 랜덤으로 적 생성
 		else
 			enemy[i].move();
 	}
 
 
 	//총알 처리 
-	if (bullet.show() == false)
+	for (int i = 0; i < BULLET_NUM; i++)
 	{
-		if (KEY_DOWN(VK_SPACE))
-		{
-			bullet.active();
-			bullet.init(hero.x_pos, hero.y_pos);
-		}
+		//if (bullet[i].show() == false)
+		//{
+			if (KEY_DOWN(VK_SPACE))
+			{
+				bullet[i].active();
+				bullet[i].init(hero.x_pos, hero.y_pos);
+				bullet[i].show() == true;
+			}
+		//}
+		//else if (bullet[i].show() == true)
+		//{
+			if (bullet[i].x_pos > 640)
+			{
+				bullet[i].hide();
+				bullet[i].show() == false;
 
+			}
 
+			else
+				bullet[i].move();
+		//}
 	}
-
-
-	if (bullet.show() == true)
-	{
-		if (bullet.y_pos < -70)
-			bullet.hide();
-		else
-			bullet.move();
-
-
-	}
-
-
+	
 
 }
 
@@ -474,47 +492,64 @@ void render_frame(void)
 
 	d3ddev->BeginScene();    // begins the 3D scene
 
-	d3dspt->Begin(D3DXSPRITE_ALPHABLEND);    // // begin sprite drawing with transparency
+	d3dspt->Begin(D3DXSPRITE_ALPHABLEND);    // // begin sprite drawing with transparency 배경 투명하게
 
 	//UI 창 렌더링 
 
 
-	/*
-	static int frame = 21;    // start the program on the final frame
-	if(KEY_DOWN(VK_SPACE)) frame=0;     // when the space key is pressed, start at frame 0
-	if(frame < 21) frame++;     // if we aren't on the last frame, go to the next frame
+	
+	static int frame = 8;    // start the program on the final frame
+	if(KEY_UP(VK_RIGHT)) frame=0;     // when the space key is pressed, start at frame 0
+	if(frame < 8) frame++;     // if we aren't on the last frame, go to the next frame
 
 	// calculate the x-position
-	int xpos = frame * 182 + 1;
+	int xpos = frame * 64 + 1; //한 프레임의 너비 +1
 
-	RECT part;
-	SetRect(&part, xpos, 0, xpos + 181, 128);
-	D3DXVECTOR3 center(0.0f, 0.0f, 0.0f);    // center at the upper-left corner
-	D3DXVECTOR3 position(150.0f, 50.0f, 0.0f);    // position at 50, 50 with no depth
-	d3dspt->Draw(sprite, &part, &center, &position, D3DCOLOR_ARGB(127, 255, 255, 255));
+//Background image
+	RECT back;
+	SetRect(&back, 0, 0, 640, 480); //background size
+	D3DXVECTOR3 center0(0.0f, 0.0f, 0.0f);    // center at the upper-left corner
+	D3DXVECTOR3 position0(0.0f, 0.0f, 0.0f);    // position at 50, 50 with no depth
+	d3dspt->Draw(sprite_back, &back, &center0, &position0, D3DCOLOR_ARGB(255, 255, 255, 255));
+
+
+	//TEST
+	/*
+	RECT part0;
+	SetRect(&part0, xpos, 0, xpos + 181, 128);
+	D3DXVECTOR3 center3(0.0f, 0.0f, 0.0f);    // center at the upper-left corner
+	D3DXVECTOR3 position3(150.0f, 50.0f, 0.0f);    // position at 50, 50 with no depth
+	d3dspt->Draw(sprite, &part0, &center3, &position3, D3DCOLOR_ARGB(127, 255, 255, 255));
 	*/
+
+	
+
+	////총알 
+	for (int i=0; i < BULLET_NUM; i++)
+	{
+		if (bullet[i].bShow == true)
+		{
+			RECT part1;
+			SetRect(&part1, 0, 0, 32, 32);  //bullet size=32
+			D3DXVECTOR3 center1(-50.0f, -20.0f, 0.0f);    // center at the upper-left corner  //x축, y축 순
+			D3DXVECTOR3 position1(bullet[i].x_pos, bullet[i].y_pos, 0.0f);    // position at 50, 50 with no depth
+			d3dspt->Draw(sprite_bullet, &part1, &center1, &position1, D3DCOLOR_ARGB(255, 255, 255, 255));
+		}
+	}
 
 	//주인공 
 	RECT part;
-	SetRect(&part, 0, 0, 64, 64);
+	SetRect(&part, xpos, 0, xpos+64, 130); //주인공 size
 	D3DXVECTOR3 center(0.0f, 0.0f, 0.0f);    // center at the upper-left corner
 	D3DXVECTOR3 position(hero.x_pos, hero.y_pos, 0.0f);    // position at 50, 50 with no depth
 	d3dspt->Draw(sprite_hero, &part, &center, &position, D3DCOLOR_ARGB(255, 255, 255, 255));
 
-	////총알 
-	if (bullet.bShow == true)
-	{
-		RECT part1;
-		SetRect(&part1, 0, 0, 64, 64);
-		D3DXVECTOR3 center1(0.0f, 0.0f, 0.0f);    // center at the upper-left corner
-		D3DXVECTOR3 position1(bullet.x_pos, bullet.y_pos, 0.0f);    // position at 50, 50 with no depth
-		d3dspt->Draw(sprite_bullet, &part1, &center1, &position1, D3DCOLOR_ARGB(255, 255, 255, 255));
-	}
+	
 
 
 	////적 
 	RECT part2;
-	SetRect(&part2, 0, 0, 64, 64);
+	SetRect(&part2, 0, 0, 64, 64);  //enemy size
 	D3DXVECTOR3 center2(0.0f, 0.0f, 0.0f);    // center at the upper-left corner
 
 	for (int i = 0; i < ENEMY_NUM; i++)
@@ -543,8 +578,8 @@ void cleanD3D(void)
 	d3ddev->Release();
 	d3d->Release();
 
-	//객체 해제 
-	sprite_hero->Release();
+	 // 객체 해제 
+    	 sprite_hero->Release();
 	sprite_enemy->Release();
 	sprite_bullet->Release();
 

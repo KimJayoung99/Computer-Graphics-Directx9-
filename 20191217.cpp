@@ -41,9 +41,11 @@ LPDIRECT3DTEXTURE9 sprite_bullet;    // the pointer to the sprite
 LPDIRECT3DTEXTURE9 sprite_back;    // the pointer to the sprite
 
 LPD3DXFONT dxfont;    // the pointer to the font object
+float enemyX = 60.0f, enemyY = 60.0f;    // the enemy position
 int health = 300;
 int maxhealth = 1000;
 LPDIRECT3DTEXTURE9 DisplayTexture;    // the pointer to the texture
+int ammo = 10394;    // the player's current ammo
 
 // function prototypes
 void initD3D(HWND hWnd);    // sets up and initializes Direct3D
@@ -351,6 +353,8 @@ void initD3D(HWND hWnd)
 
 	D3DXCreateSprite(d3ddev, &d3dspt);    // create the Direct3D Sprite object
 
+	//load_display();
+
 	D3DXCreateTextureFromFileEx(d3ddev,    // the device pointer
 		L"woods.png",    // the file name
 		D3DX_DEFAULT,    // default width
@@ -582,7 +586,7 @@ void render_frame(void)
 	d3dspt->Begin(D3DXSPRITE_ALPHABLEND);    // // begin sprite drawing with transparency 배경 투명하게
 
 	////UI 창 렌더링 
-	draw_display();
+	//draw_display();
 
 //Background image
 	RECT back;
@@ -652,7 +656,7 @@ void render_frame(void)
 		}
 	}
 
-
+	draw_display();
 
 	d3dspt->End();    // end sprite drawing
 
@@ -663,9 +667,10 @@ void render_frame(void)
 	return;
 }
 
-void LoadDisplay()
+// this loads the display graphics and font
+void load_display()
 {
-	//LoadTexture(&DisplayTexture, L"DisplaySprites.png");
+	LoadTexture(&DisplayTexture, L"DisplaySprites.png");
 
 	D3DXCreateFont(d3ddev, 20, 0, FW_BOLD, 1, false, DEFAULT_CHARSET,
 		OUT_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_DONTCARE,
@@ -674,18 +679,78 @@ void LoadDisplay()
 	return;
 }
 
-void DrawDisplay()
+
+// this draws the display
+void draw_display()
 {
 	RECT Part;
-	//draw the healthbar
-	//display the bar
+
+	int minHP = 50;
+
+	// DRAW THE HEALTHBAR
+	// display the bar
 	SetRect(&Part, 1, 1, 505, 12);
 	DrawTexture(DisplayTexture, Part, 11, 456, 255);
 
-	//display the health "juice"
+	// display the health "juice"
 	SetRect(&Part, 506, 1, 507, 12);
-	for (int index = 0; index < (health * 490 / maxhealth); index++)
+	for (int index = 0; index < (health * 550 / maxhealth); index++)
+	{
 		DrawTexture(DisplayTexture, Part, index + 18, 456, 255);
+		DrawTexture(DisplayTexture, Part, index + 118, 456, 255);
+		DrawTexture(DisplayTexture, Part, index + 218, 456, 255);
+		DrawTexture(DisplayTexture, Part, index + 318, 456, 255);
+
+		for(int i=0; i<ENEMY_NUM; i++)
+		if (hero.x_pos < enemy[i].x_pos + 55  //plus enemy x size
+			&& enemy[i].x_pos < hero.x_pos + 85
+			&& hero.y_pos < enemy[i].y_pos + 55
+			&& enemy[i].y_pos < hero.y_pos + 120)
+		{
+
+		}
+	}
+
+	// DRAW THE AMMO INDICATOR
+	// display the backdrop
+	SetRect(&Part, 351, 14, 456, 40);
+	DrawTexture(DisplayTexture, Part, 530, 449, 127);
+
+	// display the border
+	SetRect(&Part, 351, 45, 457, 72);
+	DrawTexture(DisplayTexture, Part, 530, 449, 255);
+
+	// display the font
+	SetRect(&Part, 535, 453, 630, 470);
+	static char strAmmoText[10];
+	_itoa_s(ammo, strAmmoText, 10);
+	dxfont->DrawTextA(NULL,
+		(LPCSTR)&strAmmoText,
+		strlen((LPCSTR)&strAmmoText),
+		&Part,
+		DT_RIGHT,
+		D3DCOLOR_ARGB(255, 120, 120, 255));
+
+	return;
+}
+
+
+// this loads a texture from a file
+void LoadTexture(LPDIRECT3DTEXTURE9* texture, LPCTSTR filename)
+{
+	D3DXCreateTextureFromFileEx(d3ddev, filename, D3DX_DEFAULT, D3DX_DEFAULT,
+		D3DX_DEFAULT, NULL, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, D3DX_DEFAULT,
+		D3DX_DEFAULT, D3DCOLOR_XRGB(255, 0, 255), NULL, NULL, texture);
+
+	return;
+}
+
+
+// this draws a portion of the specified texture
+void DrawTexture(LPDIRECT3DTEXTURE9 texture, RECT texcoords, float x, float y, int a)
+{
+	D3DXVECTOR3 center(0.0f, 0.0f, 0.0f), position(x, y, 0.0f);
+	d3dspt->Draw(texture, &texcoords, &center, &position, D3DCOLOR_ARGB(a, 255, 255, 255));
 
 	return;
 }

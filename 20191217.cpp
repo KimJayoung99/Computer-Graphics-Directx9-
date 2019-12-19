@@ -39,10 +39,12 @@ LPDIRECT3DTEXTURE9 sprite_hero;    // the pointer to the sprite
 LPDIRECT3DTEXTURE9 sprite_enemy;    // the pointer to the sprite
 LPDIRECT3DTEXTURE9 sprite_bullet;    // the pointer to the sprite
 LPDIRECT3DTEXTURE9 sprite_back;    // the pointer to the sprite
+LPDIRECT3DTEXTURE9 sprite_clear;    // the pointer to the sprite
+
 
 LPD3DXFONT dxfont;    // the pointer to the font object
 float enemyX = 60.0f, enemyY = 60.0f;    // the enemy position
-int health = 300;
+int health = 150;
 int maxhealth = 1000;
 LPDIRECT3DTEXTURE9 DisplayTexture;    // the pointer to the texture
 int ammo = 10394;    // the player's current ammo
@@ -448,6 +450,23 @@ void initD3D(HWND hWnd)
 		NULL,    // not using 256 colors
 		&sprite_bullet);    // load to sprite
 
+	
+	D3DXCreateTextureFromFileEx(d3ddev,    // the device pointer
+		L"clear.png",    // the file name
+		D3DX_DEFAULT,    // default width
+		D3DX_DEFAULT,    // default height
+		D3DX_DEFAULT,    // no mip mapping
+		NULL,    // regular usage
+		D3DFMT_A8R8G8B8,    // 32-bit pixels with alpha
+		D3DPOOL_MANAGED,    // typical memory handling
+		D3DX_DEFAULT,    // no filtering
+		D3DX_DEFAULT,    // no mip filtering
+		D3DCOLOR_XRGB(255, 0, 255),    // the hot-pink color key
+		NULL,    // no image info struct
+		NULL,    // not using 256 colors
+		&sprite_clear);    // load to sprite
+	
+
 
 	load_display();
 
@@ -518,8 +537,8 @@ void do_game_logic(void)
 				// 충돌 되었으면
 				if (bullet[i].x_pos < enemy[j].x_pos + 55  //plus enemy x size
 					&& enemy[j].x_pos < bullet[i].x_pos + 32
-					&&bullet[i].y_pos < enemy[j].y_pos + 55
-					&& enemy[j].y_pos < bullet[i].y_pos + 32
+					&&bullet[i].y_pos < enemy[j].y_pos + 50
+					&& enemy[j].y_pos < bullet[i].y_pos + 30
 					)
 				{
 
@@ -527,6 +546,10 @@ void do_game_logic(void)
 
 					bullet[i].hide();
 					enemy[j].hide();
+
+					if(health<999)
+					health += 30;
+					
 					
 				}
 
@@ -656,8 +679,20 @@ void render_frame(void)
 		}
 	}
 
-	draw_display();
 
+	draw_display(); //UI
+
+	//Game Clear Scene
+	if (health >= 1000)
+	{
+		RECT clear;
+		SetRect(&clear, 0, 0, 640, 480); //background size
+		D3DXVECTOR3 center7(0.0f, 0.0f, 0.0f);    // center at the upper-left corner
+		D3DXVECTOR3 position7(0.0f, 0.0f, 0.0f);    // position at 0.0 with no depth
+		d3dspt->Draw(sprite_clear, &clear, &center7, &position7, D3DCOLOR_ARGB(255, 255, 255, 255));
+	}
+
+	
 	d3dspt->End();    // end sprite drawing
 
 	d3ddev->EndScene();    // ends the 3D scene
@@ -685,7 +720,6 @@ void draw_display()
 {
 	RECT Part;
 
-	int minHP = 50;
 
 	// DRAW THE HEALTHBAR
 	// display the bar
@@ -694,22 +728,31 @@ void draw_display()
 
 	// display the health "juice"
 	SetRect(&Part, 506, 1, 507, 12);
-	for (int index = 0; index < (health * 550 / maxhealth); index++)
+	for (int index = 0; index < (health * 490 / maxhealth); index++)
 	{
 		DrawTexture(DisplayTexture, Part, index + 18, 456, 255);
-		DrawTexture(DisplayTexture, Part, index + 118, 456, 255);
-		DrawTexture(DisplayTexture, Part, index + 218, 456, 255);
-		DrawTexture(DisplayTexture, Part, index + 318, 456, 255);
+		//DrawTexture(DisplayTexture, Part, index + 118, 456, 255);
+		//DrawTexture(DisplayTexture, Part, index + 218, 456, 255);
+		//DrawTexture(DisplayTexture, Part, index + 318, 456, 255);
 
-		for(int i=0; i<ENEMY_NUM; i++)
-		if (hero.x_pos < enemy[i].x_pos + 55  //plus enemy x size
-			&& enemy[i].x_pos < hero.x_pos + 85
-			&& hero.y_pos < enemy[i].y_pos + 55
-			&& enemy[i].y_pos < hero.y_pos + 120)
+		/*for (int i = 0; i < ENEMY_NUM; i++)
 		{
-
-		}
+			for (int j = 0; j < ENEMY_NUM; j++)
+			{
+				if (bullet[i].x_pos < enemy[j].x_pos + 55  //plus enemy x size
+					&& enemy[j].x_pos < bullet[i].x_pos + 32
+					&& bullet[i].y_pos < enemy[j].y_pos + 50
+					&& enemy[j].y_pos < bullet[i].y_pos + 30
+					)
+				{
+					//health +=10;
+		
+				}
+			}
+		}*/
+		
 	}
+	///////////////////////////////////////////////////////////
 
 	// DRAW THE AMMO INDICATOR
 	// display the backdrop
